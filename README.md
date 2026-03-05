@@ -96,7 +96,7 @@ quality_report['null_audit'] = pd.DataFrame({
 ## Key Findings (Sample Data)
 
 - **98.7% reconciliation rate** between source and target systems
-- **1.3% discrepancy** (13 records) flagged for investigation — all in date range Dec 2023
+- **1.0% discrepancy (10 records) flagged: 5 missing from target, 5 with amount discrepancies
 - **4 mandatory fields** had null values in < 0.5% of records — auto-flagged
 - **Zero duplicate primary keys** detected across 1,000 records
 - Financial balance reconciliation: **debit/credit delta < £0.01** — within rounding tolerance
