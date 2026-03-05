@@ -1,0 +1,14 @@
+# Python cache
+__pycache__/
+*.py[cod]
+.env
+venv/
+.venv/
+
+# Generated outputs (run the pipeline to regenerate)
+outputs/*.xlsx
+outputs/*.csv
+outputs/*.json
+
+# Keep the template (it's static, not generated)
+!outputs/quality_report_template.xlsx
