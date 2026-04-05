@@ -1,0 +1,2 @@
+total_source_transactions,matched,missing_in_target,missing_in_source,amount_discrepancies,total_discrepancies,reconciliation_rate_pct,net_debit_delta_gbp,net_credit_delta_gbp
+1000,987,7,0,6,13,98.7,-0.16,-0.03
