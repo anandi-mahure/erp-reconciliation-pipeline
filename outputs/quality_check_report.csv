@@ -1,0 +1,17 @@
+dataset,check_name,status,rows_failed,total_rows,failure_pct,run_timestamp
+source,QC-S01: Null transaction_id,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S02: Duplicate transaction_id,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S03: Both debit and credit = 0,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S04: Both debit and credit > 0,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S05: Negative debit or credit amount,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,"QC-S06: Amount > £1,000,000",PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S07: Invalid currency,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S08: GBP with exchange_rate ≠ 1.0,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S09: Invalid GL account,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S10: Posting date before transaction date,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S11: Posting lag > 7 days,PASS,0,1000,0.0,2026-04-05 21:31:27
+source,QC-S12: High-value (>£10K) with no approver,FAIL,1,1000,0.1,2026-04-05 21:31:27
+target,QC-T01: Null ledger_transaction_id,PASS,0,993,0.0,2026-04-05 21:31:27
+target,QC-T02: Duplicate ledger_transaction_id,PASS,0,993,0.0,2026-04-05 21:31:27
+target,QC-T03: Invalid ledger_status,PASS,0,993,0.0,2026-04-05 21:31:27
+target,QC-T04: Both debit and credit = 0,PASS,0,993,0.0,2026-04-05 21:31:27
