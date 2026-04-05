@@ -39,13 +39,23 @@ Controller and CFO sign-off.
 | Metric | Value |
 |---|---|
 | Reconciliation match rate | **98.7%** across source/target systems |
-| Discrepancies auto-flagged | **13 records** — all isolated to Dec 2023 date window |
+| Discrepancies auto-flagged | **13 records** — isolated to specific transaction window |
 | Quality checks run | **16 automated checks** (12 source + 4 target) |
 | Null field violations caught | **4 mandatory fields** < 0.5% null — auto-reported |
 | Duplicate primary keys | **Zero** across 1,000 records |
 | Debit/credit balance delta | **< £0.01** — within rounding tolerance |
 | High-value approval gaps | **Flagged automatically** — transactions >£10K without approver |
 | Pipeline runtime vs manual | **Minutes vs hours** |
+
+---
+
+## Output Preview
+
+### Tab 01 — Executive Summary (KPI Tiles + Reconciliation Statement)
+![Executive Summary](outputs/governance_report_tab1.png)
+
+### Tab 02 — Discrepancy Register (Colour-Coded by Status)
+![Discrepancy Register](outputs/governance_report_tab2.png)
 
 ---
 
@@ -132,7 +142,7 @@ Written in ANSI SQL with SQL Server / PostgreSQL dialect notes.
 
 ### `sql/reconciliation_queries.sql` — 8 core queries
 
-**Cross-system reconciliation — missing in target:**
+**Cross-system reconciliation — records missing from target ledger:**
 ```sql
 SELECT
     s.transaction_id,
@@ -148,27 +158,29 @@ WHERE t.ledger_transaction_id IS NULL
 ORDER BY s.posting_date DESC;
 ```
 
-**Financial balance reconciliation by system:**
+**Financial balance reconciliation — debit/credit integrity by system:**
 ```sql
 SELECT
-    'SOURCE'                        AS system,
-    ROUND(SUM(debit_amount), 2)     AS total_debits,
-    ROUND(SUM(credit_amount), 2)    AS total_credits,
+    'SOURCE'                            AS system,
+    ROUND(SUM(debit_amount), 2)         AS total_debits,
+    ROUND(SUM(credit_amount), 2)        AS total_credits,
     ROUND(ABS(SUM(debit_amount)
-            - SUM(credit_amount)), 4) AS balance_delta,
+            - SUM(credit_amount)), 4)   AS balance_delta,
     CASE
         WHEN ABS(SUM(debit_amount)
                - SUM(credit_amount)) < 0.01
         THEN 'BALANCED'
         ELSE 'DISCREPANCY_DETECTED'
-    END                             AS balance_status
+    END                                 AS balance_status
 FROM source_transactions
 UNION ALL
-SELECT 'TARGET', ROUND(SUM(debit_amount),2),
-       ROUND(SUM(credit_amount),2),
-       ROUND(ABS(SUM(debit_amount)-SUM(credit_amount)),4),
-       CASE WHEN ABS(SUM(debit_amount)-SUM(credit_amount))<0.01
-            THEN 'BALANCED' ELSE 'DISCREPANCY_DETECTED' END
+SELECT
+    'TARGET',
+    ROUND(SUM(debit_amount), 2),
+    ROUND(SUM(credit_amount), 2),
+    ROUND(ABS(SUM(debit_amount) - SUM(credit_amount)), 4),
+    CASE WHEN ABS(SUM(debit_amount) - SUM(credit_amount)) < 0.01
+         THEN 'BALANCED' ELSE 'DISCREPANCY_DETECTED' END
 FROM target_ledger;
 ```
 
@@ -187,7 +199,7 @@ stdout. Returns DataFrames for downstream import.
 Runs **16 named quality checks** (QC-S01–S12, QC-T01–T04) with a reusable
 `run_check()` function. Each check returns dataset, check name, status
 (PASS/FAIL), rows failed, total rows, failure %, and run timestamp. Outputs
-structured CSV report to `outputs/quality_check_report.csv`.
+structured CSV to `outputs/quality_check_report.csv`.
 ```python
 def run_check(name: str, df: pd.DataFrame,
               condition_series: pd.Series, dataset: str) -> dict:
@@ -210,8 +222,8 @@ def run_check(name: str, df: pd.DataFrame,
 ### `pipeline/reconciliation.py`
 Full outer join on `transaction_id` / `ledger_transaction_id`. Classifies every
 row as MATCHED, MISSING_IN_TARGET, MISSING_IN_SOURCE, or AMOUNT_DISCREPANCY
-(tolerance: £0.01). Computes KPI summary dict and saves three outputs:
-`reconciliation_detail.csv`, `discrepancies.csv`, `reconciliation_summary.csv`.
+(tolerance: £0.01). Saves three outputs: `reconciliation_detail.csv`,
+`discrepancies.csv`, `reconciliation_summary.csv`.
 
 ### `pipeline/governance_report.py`
 Generates a **4-tab formatted Excel governance pack** using openpyxl:
@@ -220,10 +232,11 @@ Generates a **4-tab formatted Excel governance pack** using openpyxl:
 |---|---|
 | 01 Executive Summary | KPI tiles (RAG status), reconciliation statement table |
 | 02 Discrepancy Register | Full row-level register, colour-coded by status type |
-| 03 GL Account Analysis | Debit/credit totals by GL account, discrepancy count per account |
-| 04 Audit Trail | Timestamped pipeline event log + Finance Controller / CFO sign-off section |
+| 03 GL Account Analysis | Debit/credit totals by GL account, discrepancy count |
+| 04 Audit Trail | Timestamped pipeline event log + CFO sign-off section |
 
 ---
+
 
 ## Project Structure
 ```
@@ -241,19 +254,27 @@ erp-reconciliation-pipeline/
 │   └── governance_report.py        # 4-tab Excel governance pack generator
 ├── tests/
 │   └── test_quality_checks.py      # 15 pytest unit tests
-├── requirements.txt                # Pinned dependencies
+├── outputs/
+│   ├── governance_report.xlsx      # Full 4-tab Excel governance pack
+│   ├── governance_report_tab1.png  # Executive Summary preview
+│   ├── governance_report_tab2.png  # Discrepancy Register preview
+│   ├── quality_check_report.csv
+│   ├── reconciliation_detail.csv
+│   ├── discrepancies.csv
+│   └── reconciliation_summary.csv
+├── logs/                           # Auto-generated timestamped run logs
+├── requirements.txt
 └── README.md
 ```
 
 ---
-
 ## How To Run
 ```bash
-# 1. Clone
+# 1. Clone the repo
 git clone https://github.com/anandi-mahure/erp-reconciliation-pipeline.git
 cd erp-reconciliation-pipeline
 
-# 2. Install
+# 2. Install dependencies
 pip install -r requirements.txt
 
 # 3. Run pipeline stages in order
@@ -265,13 +286,8 @@ python pipeline/governance_report.py
 # 4. Run tests
 pytest tests/ -v
 
-# 5. Find outputs
+# 5. Check outputs
 ls outputs/
-# quality_check_report.csv
-# reconciliation_detail.csv
-# discrepancies.csv
-# reconciliation_summary.csv
-# governance_report.xlsx
 ```
 
 ---
@@ -304,7 +320,7 @@ applied across 5M+ row financial datasets.
 
 ## About the Author
 
-**Anandi Mahure** · Data Analyst · London, UK
+**Anandi Mahure** · Data Analyst · London, UK  
 MSc Data Science, University of Bath (Dean's Award for Academic Excellence, 2025)
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://linkedin.com/in/anandirm)
