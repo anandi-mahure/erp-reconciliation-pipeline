@@ -1,4 +1,5 @@
 # ERP Data Quality & Reconciliation Pipeline
+![CI](https://github.com/anandi-mahure/erp-reconciliation-pipeline/actions/workflows/ci.yml/badge.svg)
 
 > Automated Python pipeline for enterprise-scale ERP data validation,
 > cross-system financial reconciliation, and CFO-ready governance reporting.
